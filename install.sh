@@ -24,8 +24,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 func main() {
     http.HandleFunc("/netstat", handler) 
 
-    fmt.Println("Server is running on port 8899...")
-    log.Fatal(http.ListenAndServe(":8899", nil)) 
+    fmt.Println("Server is running on port 8891...")
+    log.Fatal(http.ListenAndServe(":8891", nil)) 
 }
 ' > serverInfoV1.go
 
