@@ -25,6 +25,8 @@ type SystemInfo struct {
     CPUCoreCount     int      `json:"cpu_core_count"`
     ReceivedBytes    uint64   `json:"received_bytes"`
     TransmittedBytes uint64   `json:"transmitted_bytes"`
+    InstantReceivedBytes uint64 `json:"instant_received_bytes"`
+    InstantTransmittedBytes uint64 `json:"instant_transmitted_bytes"`
 }
 
 func getRAMInfo() (uint64, uint64, error) {
@@ -149,6 +151,101 @@ func getNetworkTraffic(interfaceName string) (uint64, uint64, error) {
     }
 
     return receivedBytes, transmittedBytes, nil
+}
+func getInstantNetworkTraffic(interfaceName string, sampleDuration time.Duration) (uint64, uint64, error) {
+    // خواندن اولیه
+    receivedBytes1, transmittedBytes1, err := getNetworkTraffic(interfaceName)
+    if err != nil {
+        return 0, 0, err
+    }
+
+    // انتظار برای مدت زمان نمونه‌برداری
+    time.Sleep(sampleDuration)
+
+    // خواندن دوم
+    receivedBytes2, transmittedBytes2, err := getNetworkTraffic(interfaceName)
+    if err != nil {
+        return 0, 0, err
+    }
+
+    // محاسبه ترافیک دریافتی و ارسالی در بازه زمانی
+    receivedDelta := receivedBytes2 - receivedBytes1
+    transmittedDelta := transmittedBytes2 - transmittedBytes1
+
+    return receivedDelta, transmittedDelta, nil
+}
+func handler(w http.ResponseWriter, r *http.Request) {
+    port := r.URL.Query().Get("port")
+
+    if _, err := strconv.Atoi(port); err != nil {
+        http.Error(w, "Invalid port", http.StatusBadRequest)
+        return
+    }
+
+    cmdString := fmt.Sprintf(`sudo netstat -anp | grep ':%s' | grep ESTABLISHED | awk '{print $5}' | cut -d':' -f1 | sort | uniq`, port)
+    out, err := exec.Command("bash", "-c", cmdString).Output()
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    outputLines := strings.Split(string(out), "\n")
+
+    systemInfo := SystemInfo{}
+
+    for _, line := range outputLines {
+        if line != "" {
+            systemInfo.IPs = append(systemInfo.IPs, line)
+        }
+    }
+
+    systemInfo.TotalRAM, systemInfo.UsedRAM, err = getRAMInfo()
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    systemInfo.CPUCoreCount, err = getCPUCoreCount()
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    systemInfo.CPUUsage, err = getCPUUsage()
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    // استخراج اطلاعات ترافیک شبکه
+    systemInfo.ReceivedBytes, systemInfo.TransmittedBytes, err = getNetworkTraffic("eth0") // تغییر دهید بر اساس نیاز
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    jsonOutput, err := json.Marshal(systemInfo)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+    instantReceived, instantTransmitted, err := getInstantNetworkTraffic("eth0", 1*time.Second)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+    systemInfo.InstantReceivedBytes = instantReceived
+    systemInfo.InstantTransmittedBytes = instantTransmitted
+
+    w.Header().Set("Content-Type", "application/json")
+    fmt.Fprintf(w, "%s", jsonOutput)
+}
+
+func main() {
+    http.HandleFunc("/netstat", handler)
+
+    fmt.Println("Server is running on port 8891...")
+    log.Fatal(http.ListenAndServe(":8891", nil))
 }
 
 
