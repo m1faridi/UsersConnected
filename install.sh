@@ -15,15 +15,16 @@ import (
     "strings"
     "syscall"
     "time"
- 
 )
 
 type SystemInfo struct {
-    IPs          []string `json:"ips"`
-    TotalRAM     uint64   `json:"total_ram_bytes"`
-    UsedRAM      uint64   `json:"used_ram_bytes"`
-    CPUUsage     float64  `json:"cpu_usage_percent"`
-    CPUCoreCount int      `json:"cpu_core_count"`
+    IPs              []string `json:"ips"`
+    TotalRAM         uint64   `json:"total_ram_bytes"`
+    UsedRAM          uint64   `json:"used_ram_bytes"`
+    CPUUsage         float64  `json:"cpu_usage_percent"`
+    CPUCoreCount     int      `json:"cpu_core_count"`
+    ReceivedBytes    uint64   `json:"received_bytes"`
+    TransmittedBytes uint64   `json:"transmitted_bytes"`
 }
 
 func getRAMInfo() (uint64, uint64, error) {
@@ -114,65 +115,43 @@ func readCPUStat() (idleTime, totalTime int64, err error) {
     return idle, total, nil
 }
 
-func handler(w http.ResponseWriter, r *http.Request) {
-    port := r.URL.Query().Get("port")
-
-    if _, err := strconv.Atoi(port); err != nil {
-        http.Error(w, "Invalid port", http.StatusBadRequest)
-        return
-    }
-
-    cmdString := fmt.Sprintf(`sudo netstat -anp | grep ':%s' | grep ESTABLISHED | awk '{print $5}' | cut -d':' -f1 | sort | uniq`, port)
-    out, err := exec.Command("bash", "-c", cmdString).Output()
+func getNetworkTraffic(interfaceName string) (uint64, uint64, error) {
+    file, err := os.Open("/proc/net/dev")
     if err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
+        return 0, 0, err
     }
+    defer file.Close()
 
-    outputLines := strings.Split(string(out), "\n")
-
-    systemInfo := SystemInfo{}
-
-    for _, line := range outputLines {
-        if line != "" {
-            systemInfo.IPs = append(systemInfo.IPs, line)
+    var receivedBytes, transmittedBytes uint64
+    scanner := bufio.NewScanner(file)
+    for scanner.Scan() {
+        line := scanner.Text()
+        if strings.Contains(line, interfaceName) {
+            fields := strings.Fields(line)
+            if len(fields) >= 10 {
+                received, err := strconv.ParseUint(fields[1], 10, 64)
+                if err != nil {
+                    return 0, 0, err
+                }
+                transmitted, err := strconv.ParseUint(fields[9], 10, 64)
+                if err != nil {
+                    return 0, 0, err
+                }
+                receivedBytes = received
+                transmittedBytes = transmitted
+                break
+            }
         }
     }
 
-    systemInfo.TotalRAM, systemInfo.UsedRAM, err = getRAMInfo()
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
+    if err := scanner.Err(); err != nil {
+        return 0, 0, err
     }
 
-    systemInfo.CPUCoreCount, err = getCPUCoreCount()
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-    }
-
-    systemInfo.CPUUsage, err = getCPUUsage()
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-    }
-
-    jsonOutput, err := json.Marshal(systemInfo)
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-    }
-
-    w.Header().Set("Content-Type", "application/json")
-    fmt.Fprintf(w, "%s", jsonOutput)
+    return receivedBytes, transmittedBytes, nil
 }
 
-func main() {
-    http.HandleFunc("/netstat", handler)
 
-    fmt.Println("Server is running on port 8891...")
-    log.Fatal(http.ListenAndServe(":8891", nil))
-}
 EOF
 
 
