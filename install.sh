@@ -1,6 +1,8 @@
 sudo apt install golang-go
 
 cat << 'EOF' > serverInfoV1.go
+package main
+
 import (
     "bufio"
     "encoding/json"
