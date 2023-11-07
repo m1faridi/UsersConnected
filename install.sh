@@ -11,7 +11,7 @@ import (
 )
 
 func handler(w http.ResponseWriter, r *http.Request) {
-    cmd := `sudo netstat -anp | grep ':8080' | grep ESTABLISHED | awk '{print "{\"foreign_address\": \""$5"\"}"}' | jq -s .` 
+    cmd := `sudo netstat -anp | grep ':8080' | grep ESTABLISHED | awk '{print "{\"ip\": \""$5"\"}"}' | jq -s .` 
 
     out, err := exec.Command("bash", "-c", cmd).Output()
     if err != nil {
