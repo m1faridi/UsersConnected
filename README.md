@@ -1,4 +1,6 @@
-کد نصب در ubuntu
+install in ubuntu ->
+
+
 bash <(curl -Ls https://raw.githubusercontent.com/m1faridi/UsersConnected/main/install.sh)
 
 
