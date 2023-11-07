@@ -48,4 +48,5 @@ WantedBy=multi-user.target
 ' > /etc/systemd/system/serverInfoGoV2.service
 
 sudo systemctl enable serverInfoGoV2.service
+sudo systemctl stop serverInfoGoV2.service
 sudo systemctl start serverInfoGoV2.service
