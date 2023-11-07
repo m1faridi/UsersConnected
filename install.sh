@@ -27,7 +27,7 @@ func main() {
     fmt.Println("Server is running on port 8899...")
     log.Fatal(http.ListenAndServe(":8899", nil)) 
 }
-' > serverInfoGoV2.go
+' > serverInfoV1.go
 
 
 echo '
@@ -35,7 +35,7 @@ echo '
 Description=My Go App
 
 [Service]
-ExecStart=/usr/bin/go run /root/serverInfoGoV2.go
+ExecStart=/usr/bin/go run /root/serverInfoV1.go
 
 Restart=always
 User=root
@@ -45,8 +45,8 @@ Environment=OTHER_ENV_VARS=any_value
 
 [Install]
 WantedBy=multi-user.target
-' > /etc/systemd/system/serverInfoGoV2.service
+' > /etc/systemd/system/serverInfoV1.service
 
-sudo systemctl enable serverInfoGoV2.service
-sudo systemctl stop serverInfoGoV2.service
-sudo systemctl start serverInfoGoV2.service
+sudo systemctl enable serverInfoV1.service
+sudo systemctl stop serverInfoV1.service
+sudo systemctl start serverInfoV1.service
