@@ -1,6 +1,6 @@
 sudo apt install golang-go
 
-echo '
+cat << 'EOF' > serverInfoV1.go
 package main
 
 import (
@@ -11,7 +11,6 @@ import (
 )
 
 func handler(w http.ResponseWriter, r *http.Request) {
-    //cmd := `sudo netstat -anp | grep ':8080' | grep ESTABLISHED | awk '{print "{\"ip\": \""$5"\"}"}' | jq -s .`
     cmd := `sudo netstat -anp | grep ':8080' | grep ESTABLISHED | awk '{print "{\"ip\": \""$5"\"}"}' | jq -s .`
     out, err := exec.Command("bash", "-c", cmd).Output()
     if err != nil {
@@ -27,10 +26,10 @@ func main() {
     fmt.Println("Server is running on port 8891...")
     log.Fatal(http.ListenAndServe(":8891", nil)) 
 }
-' > serverInfoV1.go
+EOF
 
 
-echo '
+cat << 'EOF' > /etc/systemd/system/serverInfoV1.service
 [Unit]
 Description=My Go App
 
@@ -45,7 +44,7 @@ Environment=OTHER_ENV_VARS=any_value
 
 [Install]
 WantedBy=multi-user.target
-' > /etc/systemd/system/serverInfoV1.service
+EOF
 
 sudo systemctl enable serverInfoV1.service
 sudo systemctl stop serverInfoV1.service
