@@ -15,6 +15,7 @@ import (
     "strings"
     "syscall"
     "time"
+    "net"
 )
 
 type SystemInfo struct {
@@ -174,7 +175,42 @@ func getInstantNetworkTraffic(interfaceName string, sampleDuration time.Duration
 
 func handler(w http.ResponseWriter, r *http.Request) {
     port := r.URL.Query().Get("port")
+    ipAddress := r.URL.Query().Get("ip")
+    ipEnterface := "eth0"
+    
+    // Get a list of all interfaces.
+    interfaces, err := net.Interfaces()
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
 
+    // Iterate over all interfaces and print their details.
+    for _, interf := range interfaces {
+        fmt.Printf("Name: %v\n", interf.Name)
+        fmt.Printf("Hardware Address: %v\n", interf.HardwareAddr)
+        fmt.Printf("Flags: %v\n", interf.Flags)
+
+        // Get all the addresses assigned to this interface.
+        addresses, err := interf.Addrs()
+        if err != nil {
+            fmt.Println(err)
+            continue
+        }
+
+        for _, addr := range addresses {
+             parts := strings.Split(addr.String(), "/")
+             ipAddress_ := parts[0]
+
+
+            if(ipAddress_ == ipAddress){
+               fmt.Printf("FIND: %v\n", interf.Name)
+               ipEnterface = interf.Name
+            }
+        }
+        fmt.Println()
+    }
+    // endddd
     if _, err := strconv.Atoi(port); err != nil {
         http.Error(w, "Invalid port", http.StatusBadRequest)
         return
@@ -215,7 +251,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    systemInfo.ReceivedBytes, systemInfo.TransmittedBytes, err = getNetworkTraffic("eth0")
+    systemInfo.ReceivedBytes, systemInfo.TransmittedBytes, err = getNetworkTraffic(ipEnterface)
     if err != nil {
         http.Error(w, err.Error(), http.StatusInternalServerError)
         return
@@ -223,7 +259,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
     // اضافه کردن ترافیک شبکه در لحظه
     sampleDuration := 1000 * time.Millisecond
-    systemInfo.InstantReceivedBytes, systemInfo.InstantTransmittedBytes, err = getInstantNetworkTraffic("eth0", sampleDuration)
+    systemInfo.InstantReceivedBytes, systemInfo.InstantTransmittedBytes, err = getInstantNetworkTraffic(ipEnterface, sampleDuration)
     if err != nil {
         http.Error(w, err.Error(), http.StatusInternalServerError)
         return
@@ -245,7 +281,6 @@ func main() {
     fmt.Println("Server is running on port 8891...")
     log.Fatal(http.ListenAndServe(":8891", nil))
 }
-
 EOF
 
 
