@@ -69,7 +69,7 @@ func getCPUUsage() (float64, error) {
         return 0, err
     }
 
-    time.Sleep(500 * time.Millisecond)
+    time.Sleep(1000 * time.Millisecond)
 
     idleTime2, totalTime2, err := readCPUStat()
     if err != nil {
