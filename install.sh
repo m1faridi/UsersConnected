@@ -28,6 +28,8 @@ type SystemInfo struct {
     TransmittedBytes     uint64   `json:"transmitted_bytes"`
     InstantReceivedBytes uint64   `json:"instant_received_bytes"`
     InstantTransmittedBytes uint64 `json:"instant_transmitted_bytes"`
+    Xui string `json:"xui"`
+    Hysteria string `json:"hysteria"`
 }
 
 func getRAMInfo() (uint64, uint64, error) {
@@ -187,10 +189,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
     // Iterate over all interfaces and print their details.
     for _, interf := range interfaces {
-        fmt.Printf("Name: %v\n", interf.Name)
-        fmt.Printf("Hardware Address: %v\n", interf.HardwareAddr)
-        fmt.Printf("Flags: %v\n", interf.Flags)
-
         // Get all the addresses assigned to this interface.
         addresses, err := interf.Addrs()
         if err != nil {
@@ -204,7 +202,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 
             if(ipAddress_ == ipAddress){
-               fmt.Printf("FIND: %v\n", interf.Name)
                ipEnterface = interf.Name
             }
         }
@@ -257,13 +254,26 @@ func handler(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    // اضافه کردن ترافیک شبکه در لحظه
-    sampleDuration := 1200 * time.Millisecond
+    sampleDuration := 1500 * time.Millisecond
     systemInfo.InstantReceivedBytes, systemInfo.InstantTransmittedBytes, err = getInstantNetworkTraffic(ipEnterface, sampleDuration)
     if err != nil {
         http.Error(w, err.Error(), http.StatusInternalServerError)
         return
     }
+
+    outx, err := exec.Command("pgrep", "x-ui").Output()
+    if err == nil {
+        systemInfo.Xui = "ok"
+        fmt.Printf("x-ui running",outx)
+    }
+    
+    outh, err := exec.Command("pgrep", "hysteria-server").Output()
+    if err == nil {
+        systemInfo.Hysteria = "ok"
+        fmt.Printf("hysteria running",outh)
+    }
+    
+
 
     jsonOutput, err := json.Marshal(systemInfo)
     if err != nil {
