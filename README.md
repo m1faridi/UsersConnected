@@ -15,8 +15,15 @@ http://{address}:8891/netstat?port={port}
 
 اگر کار نکرد دستور را وارد کنید 
 
+
+
 sudo apt install golang-go
+
+
+
 sudo apt install net-tools
+
+
 و مجدد کد 
 
 bash <(curl -Ls https://raw.githubusercontent.com/m1faridi/UsersConnected/main/install.sh)
