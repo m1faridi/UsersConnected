@@ -69,7 +69,7 @@ func getCPUUsage() (float64, error) {
         return 0, err
     }
 
-    time.Sleep(1000 * time.Millisecond)
+    time.Sleep(500 * time.Millisecond)
 
     idleTime2, totalTime2, err := readCPUStat()
     if err != nil {
@@ -222,7 +222,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
     }
 
     // اضافه کردن ترافیک شبکه در لحظه
-    sampleDuration := 500 * time.Millisecond
+    sampleDuration := 1000 * time.Millisecond
     systemInfo.InstantReceivedBytes, systemInfo.InstantTransmittedBytes, err = getInstantNetworkTraffic("eth0", sampleDuration)
     if err != nil {
         http.Error(w, err.Error(), http.StatusInternalServerError)
