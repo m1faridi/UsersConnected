@@ -258,7 +258,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
     }
 
     // اضافه کردن ترافیک شبکه در لحظه
-    sampleDuration := 3000 * time.Millisecond
+    sampleDuration := 1500 * time.Millisecond
     systemInfo.InstantReceivedBytes, systemInfo.InstantTransmittedBytes, err = getInstantNetworkTraffic(ipEnterface, sampleDuration)
     if err != nil {
         http.Error(w, err.Error(), http.StatusInternalServerError)
