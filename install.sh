@@ -18,14 +18,14 @@ import (
 )
 
 type SystemInfo struct {
-    IPs              []string `json:"ips"`
-    TotalRAM         uint64   `json:"total_ram_bytes"`
-    UsedRAM          uint64   `json:"used_ram_bytes"`
-    CPUUsage         float64  `json:"cpu_usage_percent"`
-    CPUCoreCount     int      `json:"cpu_core_count"`
-    ReceivedBytes    uint64   `json:"received_bytes"`
-    TransmittedBytes uint64   `json:"transmitted_bytes"`
-    InstantReceivedBytes uint64 `json:"instant_received_bytes"`
+    IPs                  []string `json:"ips"`
+    TotalRAM             uint64   `json:"total_ram_bytes"`
+    UsedRAM              uint64   `json:"used_ram_bytes"`
+    CPUUsage             float64  `json:"cpu_usage_percent"`
+    CPUCoreCount         int      `json:"cpu_core_count"`
+    ReceivedBytes        uint64   `json:"received_bytes"`
+    TransmittedBytes     uint64   `json:"transmitted_bytes"`
+    InstantReceivedBytes uint64   `json:"instant_received_bytes"`
     InstantTransmittedBytes uint64 `json:"instant_transmitted_bytes"`
 }
 
@@ -152,28 +152,26 @@ func getNetworkTraffic(interfaceName string) (uint64, uint64, error) {
 
     return receivedBytes, transmittedBytes, nil
 }
+
 func getInstantNetworkTraffic(interfaceName string, sampleDuration time.Duration) (uint64, uint64, error) {
-    // خواندن اولیه
     receivedBytes1, transmittedBytes1, err := getNetworkTraffic(interfaceName)
     if err != nil {
         return 0, 0, err
     }
 
-    // انتظار برای مدت زمان نمونه‌برداری
     time.Sleep(sampleDuration)
 
-    // خواندن دوم
     receivedBytes2, transmittedBytes2, err := getNetworkTraffic(interfaceName)
     if err != nil {
         return 0, 0, err
     }
 
-    // محاسبه ترافیک دریافتی و ارسالی در بازه زمانی
     receivedDelta := receivedBytes2 - receivedBytes1
     transmittedDelta := transmittedBytes2 - transmittedBytes1
 
     return receivedDelta, transmittedDelta, nil
 }
+
 func handler(w http.ResponseWriter, r *http.Request) {
     port := r.URL.Query().Get("port")
 
@@ -217,8 +215,15 @@ func handler(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    // استخراج اطلاعات ترافیک شبکه
-    systemInfo.ReceivedBytes, systemInfo.TransmittedBytes, err = getNetworkTraffic("eth0") // تغییر دهید بر اساس نیاز
+    systemInfo.ReceivedBytes, systemInfo.TransmittedBytes, err = getNetworkTraffic("eth0")
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    // اضافه کردن ترافیک شبکه در لحظه
+    sampleDuration := 500 * time.Millisecond
+    systemInfo.InstantReceivedBytes, systemInfo.InstantTransmittedBytes, err = getInstantNetworkTraffic("eth0", sampleDuration)
     if err != nil {
         http.Error(w, err.Error(), http.StatusInternalServerError)
         return
@@ -229,13 +234,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
         http.Error(w, err.Error(), http.StatusInternalServerError)
         return
     }
-    instantReceived, instantTransmitted, err := getInstantNetworkTraffic("eth0", 1*time.Second)
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-    }
-    systemInfo.InstantReceivedBytes = instantReceived
-    systemInfo.InstantTransmittedBytes = instantTransmitted
 
     w.Header().Set("Content-Type", "application/json")
     fmt.Fprintf(w, "%s", jsonOutput)
@@ -247,7 +245,6 @@ func main() {
     fmt.Println("Server is running on port 8891...")
     log.Fatal(http.ListenAndServe(":8891", nil))
 }
-
 
 EOF
 
