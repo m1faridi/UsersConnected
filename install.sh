@@ -1,3 +1,5 @@
+sudo apt update
+apt list --upgradable   
 sudo apt install golang-go
 sudo apt install net-tools
 cat << 'EOF' > serverInfoV1.go
