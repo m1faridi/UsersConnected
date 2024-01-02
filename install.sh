@@ -290,8 +290,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 func main() {
     http.HandleFunc("/netstat", handler)
 
-    fmt.Println("Server is running on port 8891...")
-    log.Fatal(http.ListenAndServe(":8891", nil))
+    fmt.Println("Server is running on port 2087...")
+    log.Fatal(http.ListenAndServe(":2087", nil))
 }
 EOF
 
